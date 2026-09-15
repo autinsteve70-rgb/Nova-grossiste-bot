@@ -1,8 +1,12 @@
 import os
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
 import discord
 from discord.ext import commands
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+PORT = int(os.getenv("PORT", 10000))
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -10,6 +14,23 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 CATEGORIE_COMMANDES = "📦 Commande"
+
+
+# Petit serveur web pour Render
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Nova Grossiste Bot OK")
+
+    def log_message(self, format, *args):
+        pass
+
+
+def start_web_server():
+    server = HTTPServer(("0.0.0.0", PORT), HealthHandler)
+    server.serve_forever()
 
 
 @bot.event
@@ -76,4 +97,8 @@ async def dm(ctx, membre: discord.Member, *, message: str):
         )
 
 
+# Démarre le serveur web pour Render
+threading.Thread(target=start_web_server, daemon=True).start()
+
+# Démarre le bot Discord
 bot.run(TOKEN)
